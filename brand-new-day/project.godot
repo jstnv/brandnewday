@@ -13,11 +13,59 @@ config_version=5
 config/name="Brand New Day"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+run/main_scene="res://scenes/combat_room.tscn"
 
 [display]
 
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[input]
+
+move_left={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":65)]
+}
+move_right={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":68)]
+}
+move_up={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":87)]
+}
+move_down={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":83)]
+}
+sprint={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":4194325)]
+}
+crouch={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":4194328), Object(InputEventKey,"physical_keycode":67)]
+}
+melee={
+"deadzone": 0.2,
+"events": [Object(InputEventMouseButton,"button_index":1), Object(InputEventKey,"physical_keycode":32)]
+}
+execute={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":69)]
+}
+reset_room={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":82)]
+}
+toggle_debug={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":4194332)]
+}
 
 [physics]
 

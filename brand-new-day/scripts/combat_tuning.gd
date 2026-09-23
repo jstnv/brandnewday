@@ -1,0 +1,36 @@
+class_name CombatTuning
+extends RefCounted
+
+# Every value in this file is provisional Milestone 1 tuning.
+const WALK_SPEED := 210.0
+const CROUCH_SPEED := 105.0
+const SPRINT_SPEED := 340.0
+const MAX_STAMINA := 100.0
+const SPRINT_DRAIN_PER_SECOND := 34.0
+const STAMINA_RECOVERY_PER_SECOND := 25.0
+const STAMINA_RECOVERY_DELAY := 0.65
+
+const MELEE_DAMAGE := 34
+const MELEE_RANGE := 78.0
+const MELEE_ARC_DOT := 0.25
+const MELEE_COOLDOWN := 0.38
+
+const EXECUTION_RANGE := 72.0
+const EXECUTION_DAMAGE_PER_BASH := 24
+const SEATED_FIRST_BASH_DELAY := 0.62
+const PRONE_BASH_DELAY := 0.31
+
+const ZOMBIE_MAX_HEALTH := 100
+const ZOMBIE_PRONE_THRESHOLD := 48
+const ZOMBIE_DETECTION_RANGE := 470.0
+const ZOMBIE_SPEED := 155.0
+const ZOMBIE_WINDUP_RANGE := 80.0
+const ZOMBIE_WINDUP_TIME := 0.52
+const ZOMBIE_LUNGE_SPEED := 455.0
+const ZOMBIE_LUNGE_TIME := 0.28
+const ZOMBIE_RECOVERY_TIME := 0.72
+const ZOMBIE_HIT_RADIUS := 25.0
+const ZOMBIE_KNOCKDOWN_RECOVERY := 4.0
+
+const ROOM_SIZE := Vector2(1100.0, 610.0)
+const ROOM_ORIGIN := Vector2(90.0, 55.0)
