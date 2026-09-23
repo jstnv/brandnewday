@@ -89,7 +89,7 @@ func _run() -> void:
 	other_target.position = survivor.position + Vector2(55.0, 0.0)
 	other_target.state = Zombie.State.PRONE
 	var stamina_at_execution := survivor.stamina
-	_check(survivor.try_execute(), "seated zombie is execution eligible")
+	_check(survivor.begin_execute_input(), "seated zombie is execution eligible")
 	_check(target.health == 42 and target.state == Zombie.State.PRONE, "seated execution first bash damages immediately and makes target prone")
 	_check(other_target.health == 100, "execution selects only the closest eligible zombie")
 	_check(is_equal_approx(survivor.execution_timer, CombatTuning.SEATED_FIRST_BASH_DELAY), "seated opening uses slower first-bash delay")
@@ -119,11 +119,164 @@ func _run() -> void:
 	target.position = survivor.position + Vector2(35.0, 0.0)
 	target.state = Zombie.State.PRONE
 	target.health = 70
-	_check(survivor.try_execute(), "prone zombie is execution eligible")
+	_check(survivor.begin_execute_input(), "prone zombie is execution eligible")
 	var health_after_bash := target.health
 	_check(is_equal_approx(survivor.execution_timer, CombatTuning.PRONE_BASH_DELAY), "already-prone execution starts at faster cadence")
 	survivor.receive_zombie_hit("Verifier Zombie")
 	_check(not survivor.is_executing and target.health == health_after_bash and target.health == 46, "operator hit interrupts execution without reverting bash damage")
+
+	# Semi-automatic pistol, health-state transitions, and target validity.
+	room.reset_room()
+	await process_frame
+	survivor = room.survivor
+	survivor.select_weapon(Survivor.Weapon.PISTOL)
+	survivor.aim_direction = Vector2.RIGHT
+	target = room.zombies[0]
+	other_target = room.zombies[1]
+	target.state = Zombie.State.IDLE
+	target.position = survivor.position + Vector2(80.0, 0.0)
+	other_target.position = survivor.position + Vector2(250.0, 180.0)
+	var rounds_before := survivor.inserted_magazine.rounds
+	_check(survivor.try_fire() and not survivor.try_fire() and survivor.inserted_magazine.rounds == rounds_before - 1, "semi-automatic pistol fires at most once during cadence after one press")
+	_check(target.state == Zombie.State.SEATED and target.health == 62, "standing target becomes seated from remaining firearm health")
+	survivor.firearm_cooldown = 0.0
+	target.state = Zombie.State.IDLE
+	target.health = 70
+	survivor.try_fire()
+	_check(target.state == Zombie.State.PRONE and target.health == 32, "standing target becomes prone at firearm health threshold")
+	survivor.firearm_cooldown = 0.0
+	target.state = Zombie.State.IDLE
+	target.health = 30
+	survivor.try_fire()
+	_check(target.state == Zombie.State.DEAD, "firearm shot kills when damage reaches remaining health")
+	survivor.firearm_cooldown = 0.0
+	target.state = Zombie.State.SEATED
+	target.health = 50
+	survivor.try_fire()
+	_check(target.state == Zombie.State.PRONE and target.health == 12, "shooting seated target makes it prone unless lethal")
+	survivor.firearm_cooldown = 0.0
+	target.state = Zombie.State.SEATED
+	target.health = 30
+	survivor.try_fire()
+	_check(target.state == Zombie.State.DEAD, "shooting seated target kills when damage is lethal")
+	survivor.firearm_cooldown = 0.0
+	survivor.inserted_magazine.rounds = survivor.inserted_magazine.capacity
+	target.state = Zombie.State.PRONE
+	target.health = 40
+	other_target.state = Zombie.State.IDLE
+	other_target.health = 100
+	target.position = survivor.position + Vector2(40.0, 0.0)
+	other_target.position = survivor.position + Vector2(75.0, 0.0)
+	survivor.try_fire()
+	_check(target.health == 40 and other_target.health == 62, "prone target is skipped without shielding valid target behind it")
+	survivor.firearm_cooldown = 0.0
+	other_target.state = Zombie.State.WINDUP
+	other_target.health = 100
+	survivor.try_fire()
+	_check(other_target.state == Zombie.State.SEATED, "pistol shot interrupts zombie windup")
+	survivor.firearm_cooldown = 0.0
+	other_target.state = Zombie.State.LUNGE
+	other_target.health = 100
+	survivor.try_fire()
+	_check(other_target.state == Zombie.State.SEATED, "pistol shot interrupts active zombie lunge")
+	survivor.firearm_cooldown = 0.0
+	var expected_walk_speed := CombatTuning.WALK_SPEED
+	Input.action_press("move_right")
+	survivor._physics_process(0.05)
+	Input.action_release("move_right")
+	survivor.try_fire()
+	_check(is_equal_approx(survivor.velocity.length(), expected_walk_speed), "aiming and firing preserve full current movement speed")
+
+	# Firearm execution tap, hold, empty, prone, and interruption rules.
+	room.reset_room()
+	await process_frame
+	survivor = room.survivor
+	survivor.select_weapon(Survivor.Weapon.PISTOL)
+	target = room.zombies[0]
+	target.position = survivor.position + Vector2(35.0, 0.0)
+	target.state = Zombie.State.SEATED
+	rounds_before = survivor.inserted_magazine.rounds
+	survivor.begin_execute_input()
+	survivor.release_execute_input()
+	_check(survivor.is_executing and survivor.execution_mode == Survivor.ExecutionMode.FIREARM and survivor.inserted_magazine.rounds == rounds_before, "tap commits only firearm execution and waits for shot moment")
+	survivor.receive_zombie_hit("Verifier Zombie")
+	_check(not survivor.is_executing and survivor.inserted_magazine.rounds == rounds_before and target.state == Zombie.State.SEATED, "interruption before firearm-execution shot spends no round and deals no damage")
+	survivor.begin_execute_input()
+	survivor.release_execute_input()
+	survivor._physics_process(CombatTuning.FIREARM_EXECUTION_SHOT_DELAY + 0.01)
+	_check(target.state == Zombie.State.DEAD and survivor.inserted_magazine.rounds == rounds_before - 1 and not survivor.is_executing, "firearm execution shot spends exactly one round and guarantees bound seated target death")
+	survivor.receive_zombie_hit("Verifier Zombie")
+	_check(target.state == Zombie.State.DEAD and survivor.inserted_magazine.rounds == rounds_before - 1, "interruption after firearm-execution shot cannot revert kill or spent round")
+
+	room.reset_room()
+	await process_frame
+	survivor = room.survivor
+	survivor.select_weapon(Survivor.Weapon.PISTOL)
+	target = room.zombies[0]
+	target.position = survivor.position + Vector2(35.0, 0.0)
+	target.state = Zombie.State.SEATED
+	target.health = 66
+	rounds_before = survivor.inserted_magazine.rounds
+	survivor.begin_execute_input()
+	survivor._physics_process(CombatTuning.EXECUTION_HOLD_THRESHOLD + 0.01)
+	_check(survivor.execution_mode == Survivor.ExecutionMode.PHYSICAL and target.state == Zombie.State.PRONE and target.health == 42 and survivor.inserted_magazine.rounds == rounds_before, "held seated execution chooses only bash and consumes no ammunition")
+	survivor.receive_zombie_hit("Verifier Zombie")
+	target.state = Zombie.State.SEATED
+	target.health = 66
+	survivor.inserted_magazine.rounds = 0
+	survivor.begin_execute_input()
+	_check(not survivor.release_execute_input() and not survivor.is_executing and target.health == 66, "empty-pistol tap gives no execution and does not silently bash")
+	survivor.begin_execute_input()
+	survivor._physics_process(CombatTuning.EXECUTION_HOLD_THRESHOLD + 0.01)
+	_check(survivor.execution_mode == Survivor.ExecutionMode.PHYSICAL and target.health == 42, "empty-pistol hold deliberately starts bash execution")
+	survivor.receive_zombie_hit("Verifier Zombie")
+	target.state = Zombie.State.PRONE
+	target.health = 50
+	rounds_before = survivor.inserted_magazine.rounds
+	survivor.begin_execute_input()
+	_check(survivor.execution_mode == Survivor.ExecutionMode.PHYSICAL and target.health == 26 and survivor.inserted_magazine.rounds == rounds_before, "prone execution starts physical bash immediately without ammo or hold delay")
+
+	# Individual magazine reload and loose-round loading behavior.
+	room.reset_room()
+	await process_frame
+	survivor = room.survivor
+	survivor.select_weapon(Survivor.Weapon.PISTOL)
+	var original_mag := survivor.inserted_magazine
+	var fullest_spare := survivor.spare_magazines[0]
+	_check(original_mag.stable_id == "MAG-A" and fullest_spare.stable_id == "MAG-B" and original_mag.rounds == 5 and fullest_spare.rounds == 8, "magazines retain distinct stable identities and round counts")
+	survivor.start_reload()
+	var reload_start := survivor.position
+	Input.action_press("move_right")
+	survivor._physics_process(0.1)
+	Input.action_release("move_right")
+	_check(survivor.position.x > reload_start.x and survivor.is_reloading and survivor.inserted_magazine == original_mag and not survivor.try_fire(), "reload permits movement, blocks firing, and leaves original magazine inserted")
+	survivor.select_weapon(Survivor.Weapon.MELEE)
+	_check(not survivor.is_reloading and survivor.inserted_magazine == original_mag and survivor.spare_magazines.has(fullest_spare), "weapon switch cancels reload with no magazine swap")
+	survivor.select_weapon(Survivor.Weapon.PISTOL)
+	survivor.start_reload()
+	survivor._physics_process(0.4)
+	survivor.select_weapon(Survivor.Weapon.MELEE)
+	survivor.select_weapon(Survivor.Weapon.PISTOL)
+	survivor.start_reload()
+	_check(is_equal_approx(survivor.reload_timer, CombatTuning.PISTOL_RELOAD_TIME), "retrying canceled reload restarts full timer")
+	survivor._physics_process(CombatTuning.PISTOL_RELOAD_TIME + 0.01)
+	_check(survivor.inserted_magazine == fullest_spare and survivor.spare_magazines.has(original_mag) and original_mag.rounds == 5, "reload chooses fullest compatible spare and retains partial original magazine")
+	var load_mag := survivor.spare_magazines.filter(func(m: Magazine) -> bool: return m.stable_id == "MAG-C")[0] as Magazine
+	survivor.magazine_load_target = load_mag
+	var loose_before := survivor.loose_ammo
+	survivor.start_magazine_loading()
+	survivor._physics_process(CombatTuning.MAGAZINE_LOAD_ROUND_TIME + 0.01)
+	_check(load_mag.rounds == 3 and survivor.loose_ammo == loose_before - 1, "stationary magazine loading inserts one round immediately per completed interval")
+	Input.action_press("move_left")
+	survivor._physics_process(0.05)
+	Input.action_release("move_left")
+	_check(not survivor.is_loading_magazine and load_mag.rounds == 3, "movement cancels magazine loading while preserving inserted rounds")
+	var incompatible := Magazine.new("MAG-X", "incompatible", 0, 8)
+	survivor.magazine_load_target = incompatible
+	_check(not survivor.start_magazine_loading(), "incompatible magazine rejects loose ammunition")
+	var full_mag := Magazine.new("MAG-FULL", CombatTuning.PISTOL_AMMO_CATEGORY, 8, 8)
+	survivor.magazine_load_target = full_mag
+	_check(not survivor.start_magazine_loading() and full_mag.rounds == 8, "magazine loading cannot exceed capacity")
 
 	# Enemy windup, fixed-direction lunge, miss recovery, and both interrupt points.
 	room.reset_room()

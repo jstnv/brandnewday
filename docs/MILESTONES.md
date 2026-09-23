@@ -22,7 +22,7 @@ All timings, controls, and health thresholds are provisional. The user reviews c
 
 ## 2 — Firearms and magazine actions
 
-Add one placeholder firearm, individual magazines, loose rounds, moving firearm reloads, and stationary per-round magazine loading. Standard zombies die from one landed bullet. Verify canceled actions preserve ammunition and magazine identity; aiming and shooting do not slow movement. Inventory UI may be minimal while preserving item identity.
+Add one provisional semi-automatic pistol, individual magazines, loose rounds, moving firearm reloads, and stationary per-round magazine loading. Normal shots use the standard zombie's health-based seated/prone/death states; prone zombies cannot be shot. Add tap firearm execution versus held physical execution for seated targets while preserving immediate prone physical executions. Verify canceled actions preserve ammunition and magazine identity; aiming and shooting do not slow movement. Inventory UI may be minimal while preserving item identity.
 
 ## 3 — First retrieval expedition
 

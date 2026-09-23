@@ -2,78 +2,85 @@
 
 ## Current state
 
-Milestone 1, Movement and Melee Combat Slice, is implemented on `codex/milestone-1-combat`. The Godot 4.7 project now launches directly into a small combat room with one survivor, two standard zombies, a fixed camera, original placeholder floor/walls, and a live state/event HUD.
+Milestone 1 passed the user's hands-on playtest on 2026-09-23 and is accepted. Milestone 2, Semi-Automatic Firearm and Magazine Actions, is implemented on `codex/milestone-2-firearms`. The combat room preserves all accepted movement, melee, execution, and zombie behavior while adding one provisional pistol and the minimal ammunition model required to exercise it.
 
-The completed work is committed locally. Publishing the branch is blocked by unavailable GitHub write authentication: no credential is stored, `gh` is not installed, and the Git Credential Manager prompt is not exposed to the available UI-control surface. After authenticating Git for the repository, resume with `git push -u origin codex/milestone-1-combat`; no implementation work remains before that push.
+The original GitHub push attempt was blocked by unavailable repository write credentials. A binary-capable three-commit transfer patch named `brand-new-day-milestone-2.patch` was exported for authenticated publication.
 
-Implemented gameplay:
+Implemented Milestone 2 behavior:
 
-- WASD walking, reduced-speed crouching, sprinting with stamina drain and delayed recovery, and mouse-directed aiming.
-- Ordinary directional melee with damage, interruption, knockdown, closest-valid-target selection, a strict one-target-per-swing limit, and ordinary-melee kills.
-- Health-based seated/prone knockdowns. A second ordinary hit moves a seated zombie to prone unless lethal.
-- Execution eligibility for seated and prone zombies. Executions choose the closest eligible zombie, bind every bash to that one target, anchor the survivor to the exact starting position, lock movement and attacks, apply every bash immediately, stop on death, and choose bash count naturally from remaining health.
-- A seated execution's first bash forces prone and uses the slower opening delay; already-prone and subsequent bashes use the faster cadence.
-- Zombie hits visibly report an incoming hit and interrupt an execution without reverting bash damage. No temporary survivor health pool exists; injury consequences remain deferred.
-- Standard-zombie detection, fast approach, visible windup, committed nontracking lunge, missed-lunge recovery, and ordinary-melee interruption during both windup and lunge.
-- Instant room reset and a toggleable debug HUD for repeated testing.
+- A selectable semi-automatic pistol fires at most once per trigger press/cadence and damages one closest valid target along the aimed shot direction.
+- Normal shots use zombie remaining health to produce seated, prone, or dead states. A seated zombie becomes prone unless killed. Prone zombies are excluded from firearm targeting and do not shield a valid standing/seated target behind them.
+- Connected shots interrupt zombie windup and active lunge. Aiming and firing do not alter the survivor's current movement speed.
+- With the pistol selected, tapping Execute on a seated zombie commits a fast firearm execution. The shot occurs after a short tell, consumes exactly one round at that moment, and guarantees the bound target's death.
+- Holding Execute for 0.25 seconds on a seated target chooses the existing physical bash execution without ammunition use. An empty tap gives clear feedback; an empty hold can still deliberately bash.
+- A prone target, or any eligible target while melee is selected, begins the physical execution immediately without waiting for the tap/hold threshold.
+- Firearm and physical executions preserve the accepted exact position lock, single-target binding, vulnerability, immediate bash damage, and interruption rules. Interruption before the firearm shot spends no round and deals no damage; state after the shot persists.
+- Three individual magazines have stable identities, compatibility, round counts, and capacity. One is inserted and two are carried separately.
+- Reloading selects the compatible carried magazine with the most rounds, breaking ties by stable ID. Movement remains available and firing is blocked. The old magazine stays inserted until completion; weapon switching cancels without a swap; retry starts the full timer; partial magazines are retained.
+- `Q` cycles the clearly displayed loose-round loading target. `L` loads that compatible magazine one round at a time while stationary. Each completed round persists immediately; movement cancels without reverting loaded rounds. Capacity and compatibility are enforced.
+- The HUD shows selected weapon, action/progress state, inserted magazine ID/count, spare magazine IDs/counts, loose ammunition, loading target, zombie states, and recent firearm/reload/execution events.
+- Firing reports a debug sound event on misses; acoustic propagation remains deferred.
 
-No firearms, ammunition, inventory, acoustics, expeditions, bunker systems, progression, save data, campaign simulation, or survivor injury model was added.
+No expedition, bunker, persistence, encumbrance, full inventory, survivor injury, progression, extra firearm, automatic fire, acoustic grid, or Milestone 3 feature was added.
 
 ## Launch and controls
 
-Open `brand-new-day/project.godot` in Godot 4.7.1 and run the project, or from the repository root run:
-
-```powershell
-& "C:\path\to\Godot_v4.7.1-stable_win64.exe" --path brand-new-day
-```
-
-Controls:
+Open `brand-new-day/project.godot` in Godot 4.7.1 and run the project, or run the editor/executable with `--path brand-new-day` from the repository root.
 
 - `WASD`: move
 - Mouse: aim
 - `Shift`: sprint
 - `Ctrl` or `C`: crouch
-- Left mouse button or `Space`: ordinary melee
-- `E`: execute the nearest seated/prone zombie in range
-- `R`: reset the room
-- `F1`: toggle the debug HUD
+- `1`: select melee
+- `2`: select pistol
+- Left mouse button: use selected weapon
+- `Space`: ordinary melee while melee is selected
+- `E`: execute; tap/hold choice applies to a seated target with pistol selected
+- `R`: reload pistol
+- `Q`: cycle loose-round magazine target
+- `L`: start/stop loading loose rounds into the displayed target magazine
+- `F5`: reset combat room
+- `F1`: toggle debug HUD
 
 ## Verification performed
 
-- Godot 4.7.1 stable (`a13da4feb`) completed the editor import/parser pass after the implementation. No parser, scene-load, or invalid-node-reference errors remained.
-- The main scene ran under Godot for a runtime smoke check without milestone-related errors.
-- `godot --headless --path brand-new-day --script res://scripts/milestone_verifier.gd` passed 26/26 focused in-engine checks:
-  - scene launch with one survivor and two zombies;
-  - walk, crouch, sprint, and stamina drain;
-  - only the closest valid melee target is hit, with exactly one damaged/knocked-down target when two zombies occupy the same position;
-  - high-health seated knockdown, seated-to-prone follow-up, and ordinary-melee death;
-  - closest-eligible execution selection, every bash remaining bound to that one target even if another becomes closer, seated and prone eligibility, immediate per-bash damage, seated first-bash prone transition, distinct cadence, exact position anchoring against held movement and simulated external displacement, attack lock, no stamina cost, and stop-on-death;
-  - execution interruption by an operator hit with already-applied damage retained;
-  - telegraphed windup, fixed nontracking lunge direction, missed-lunge recovery, and melee interruption of both windup and active lunge.
-- A rendered 1280×720 project frame was captured and inspected. Room boundaries, floor grid, survivor/aim indicator, both zombies, zombie health bars, controls, stamina, enemy states, deferred-injury notice, and event log were visible and readable.
+- Godot 4.7.1 stable (`a13da4feb`) completed the import/parser pass with no script, scene, or invalid-node-reference errors.
+- The main scene completed a runtime smoke check without milestone-related errors.
+- The focused in-engine verifier passed 53/53 checks, including all accepted Milestone 1 checks plus:
+  - semi-automatic cadence and one-round consumption;
+  - standing firearm transitions to seated, prone, and dead;
+  - seated firearm transitions to prone or dead;
+  - prone-target exclusion while a valid target behind it remains hittable;
+  - firearm interruption of windup and lunge;
+  - full movement speed while aiming/firing;
+  - tap firearm execution, held bash execution, empty tap, empty hold, and immediate prone execution;
+  - mutually exclusive execution modes and correct ammunition use;
+  - pre-shot and post-shot interruption persistence;
+  - stable magazine identities/counts, deterministic reload selection, movement during reload, blocked fire, cancellation without swap, full-timer retry, and partial-magazine retention;
+  - one-at-a-time stationary loose-round loading, movement cancellation with retained rounds, compatibility rejection, and capacity enforcement.
+- A rendered 1280×720 frame was inspected. The expanded controls, weapon/action state, inserted and spare magazine identities/counts, loose ammunition, loading target, survivor/zombie state, room, and event display were visible and readable.
 
-The environment launched the native game process, but its window was not exposed to the available UI-control surface. Direct keyboard/mouse play was therefore unavailable and is not claimed as verified. The in-engine verifier exercises the actual scene scripts and input actions; it does not establish subjective combat feel.
+Direct keyboard/mouse automation remains unavailable because the launched native game window is not exposed to the available UI-control surface. The user should judge firearm feel in a hands-on playtest; no direct Milestone 2 manual interaction is claimed here.
 
 ## Provisional tuning and choices
 
-All provisional values are centralized in `brand-new-day/scripts/combat_tuning.gd`:
+All provisional values remain centralized in `brand-new-day/scripts/combat_tuning.gd`.
 
-- Movement: 210 px/s walk, 105 px/s crouch, 340 px/s sprint.
-- Stamina: 100 maximum, 34/s sprint drain, 25/s recovery after a 0.65 s delay.
-- Melee: 34 damage, 78 px range, 0.38 s cooldown.
-- Execution: 24 damage per bash, 0.62 s seated opening delay, 0.31 s prone cadence.
-- Standard zombie: 100 health, prone at 48 or less, 470 px detection, 155 px/s chase, 0.52 s windup, 455 px/s lunge for 0.28 s, 0.72 s recovery, and 4 s knockdown recovery.
-
-The single-target rule selects the closest valid target in the aimed melee arc; it never applies one swing to a list of targets. Executions select the closest eligible downed zombie and retain that target for every bash. Simple drawn shapes keep all visuals original and make attack states readable by color.
+- Pistol: 38 damage, 560 px range, 2° spread, 0.22 s cadence.
+- Magazine: 8-round capacity; initial `MAG-A` 5/8 inserted, `MAG-B` 8/8 and `MAG-C` 2/8 carried; 12 loose 9mm rounds.
+- Reload: 1.15 s; highest-round compatible spare selected, stable ID breaks ties.
+- Loose-round loading: 0.38 s per round.
+- Execution input: 0.25 s hold threshold; firearm execution shot at 0.14 s after commitment.
+- Existing Milestone 1 movement, melee, zombie, knockdown, and physical-execution tuning is unchanged.
 
 ## Known limitations
 
-- The user's direct playtest is still needed to assess feel and tune movement, stamina, melee reach, telegraph readability, lunge pressure, and execution rhythm.
-- The placeholder room and actors are deliberately minimal drawn geometry.
-- Survivor injury, blood, incapacitation, and death are deferred exactly as required. Zombie hits currently report and interrupt only.
-- Knockdown recovery is a provisional four-second timer.
-- No controller bindings are included in this slice.
+- Firearm feel, spread, cadence, damage, reload time, magazine capacity, and tap/hold readability require the user's playtest.
+- Placeholder presentation remains simple drawn geometry; firing has event feedback rather than bespoke animation/audio.
+- The ammunition representation is intentionally minimal and does not implement general inventory containers.
+- Survivor injury consequences and acoustic propagation remain deferred.
+- No controller bindings are included.
 
 ## Next action
 
-Playtest Milestone 1 and record tuning feedback. Evaluate sprint pressure, whether melee range and cooldown feel deliberate, whether windup and lunge are readable but dangerous, whether knockdown recovery is fair, and whether seated versus prone executions feel meaningfully different. Do not begin Milestone 2 until that combat-feel review is complete.
+Playtest Milestone 2. Evaluate pistol cadence and damage, target selection around prone bodies, shot/lunge interruption clarity, firearm-execution tell and tap/hold reliability, empty feedback, moving reload readability, and the friction of stationary per-round loading. Stop here until that feedback is recorded; do not begin Milestone 3.

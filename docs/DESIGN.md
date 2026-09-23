@@ -1,13 +1,10 @@
 # Design reference
 
-This is the repository's implementation reference, consolidated from the design conversation and the Google Docs below. Later explicit user decisions take precedence. Items marked open or provisional are not approved features or fixed values.
+This is the repository's implementation reference, consolidated from the design conversation and the project's private source documents. Later explicit user decisions take precedence. Items marked open or provisional are not approved features or fixed values.
 
 ## Sources
 
-- [Overview](https://docs.google.com/document/d/109TVr5et9JMso8EyuYAxn64P4BNRqKDSnWkkeErqzsQ)
-- [Combat](https://docs.google.com/document/d/18y2SSaXC6a2QSxpZX4bV0ALs57Gv2sW8GS3cCDe3K9M)
-- [Expeditions](https://docs.google.com/document/d/1aS8WEhIDeb5n42xOiLRmg5TTYSXDgbiCW0qmdFRSSRg)
-- [Design folder](https://drive.google.com/drive/folders/1Jq62Rt7nRSzlghNPcqe5raHRM2LBTp8E)
+The original overview, combat, and expedition documents are maintained in the project's private Google Drive folder. Their private identifiers are intentionally omitted from this public repository.
 
 The source documents were reviewed at v0.3. The conversation subsequently confirmed damage per execution bash, weighted injury selection, the unconsciousness transition, and persistence of collected loot and completed objective steps. Those amendments are incorporated below. This file does not imply the Google Docs have been updated with those amendments.
 
@@ -30,7 +27,8 @@ Stealth, loud, and mixed approaches are supported. Actions influence stat progre
 
 ## Standard zombie and combat
 
-- One landed bullet kills a standard zombie. Weapon spread may still cause misses.
+- Normal firearm shots damage one valid target along the aim direction. Remaining health determines whether a standing standard zombie becomes seated, becomes prone, or dies. A shot against a seated zombie makes it prone unless lethal; prone zombies are not valid firearm targets. This supersedes the earlier one-landed-bullet kill rule.
+- Semi-automatic weapons fire at most once per trigger press. A connected shot interrupts zombie windup or an active lunge. Aiming and firing retain the operator's current movement speed and add no movement accuracy penalty.
 - A clean melee hit damages and knocks down one zombie. Each swing can knock down only one target; separate swings may leave several zombies down.
 - Melee interrupts both attack windup and an active lunge.
 - The standard zombie closes quickly after detection, briefly telegraphs, performs a committed nontracking lunge, and has a recovery period after missing. Exact timings are provisional.
@@ -40,6 +38,8 @@ Stealth, loud, and mixed approaches are supported. Actions influence stat progre
 - Execution bashes each apply damage immediately. Remaining zombie health determines the required bash count; no fixed count or guaranteed final hit.
 - Against a seated zombie, the first bash makes it prone, then finishing bashes use the faster prone cadence. An already prone zombie starts that cadence immediately.
 - Applied damage persists if the operator dies or becomes incapacitated during an execution. Stop the attack when the target dies.
+- With a pistol selected, tapping Execute on a seated zombie performs a committed firearm execution and holding Execute past a short provisional threshold deliberately chooses the longer physical bash execution. The firearm execution spends exactly one loaded round at its shot moment and guarantees that bound seated target's death; interruption before the shot spends no round and deals no damage. An empty tap gives feedback rather than silently becoming a bash, while an empty hold can still choose the bash. Prone targets and melee-selected executions begin the physical execution immediately without waiting for the threshold.
+- Every execution preserves the exact position lock, vulnerability, and single-target binding. One input cannot trigger both firearm and physical execution.
 
 Earlier universal execution-duration proposals are superseded by damage-per-bash behavior. A three-second knockdown was a provisional baseline; seated/prone recovery, timer resets, damage, and cadence need tuning. Special enemy variants are not first-milestone requirements.
 
@@ -48,6 +48,8 @@ Earlier universal execution-duration proposals are superseded by damage-per-bash
 Magazines are individual items with compatible ammunition and tracked round counts. Firearm reloading swaps magazines and retains partially filled magazines. The original stays inserted until reload completion; cancellation performs no swap, and retry restarts the timer.
 
 Loose ammunition is loaded into a magazine through a separate action, including during expeditions. Stand still and add rounds individually. Moving cancels loading; rounds already loaded remain. Capacities, compatibility categories, and action timings remain provisional.
+
+Each magazine has a stable identity, compatibility category, current rounds, and capacity. Shooting is unavailable during reload, but movement remains available. Switching weapons cancels reload without swapping magazines. Selection among compatible reload magazines must be deterministic and documented.
 
 ## Hearing
 

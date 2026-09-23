@@ -81,6 +81,32 @@ func receive_melee(damage: int, knock_direction: Vector2) -> void:
 	if interrupted:
 		event_reported.emit("%s attack interrupted by melee" % display_name)
 
+func receive_firearm(damage: int, shot_direction: Vector2) -> bool:
+	if state == State.PRONE or state == State.DEAD:
+		return false
+	var interrupted := state == State.WINDUP or state == State.LUNGE
+	var was_seated := state == State.SEATED
+	health = maxi(0, health - damage)
+	if health <= 0:
+		_set_state(State.DEAD)
+		event_reported.emit("%s killed by pistol shot" % display_name)
+		return true
+	global_position += shot_direction * 10.0
+	state_timer = CombatTuning.ZOMBIE_KNOCKDOWN_RECOVERY
+	if was_seated or health <= CombatTuning.ZOMBIE_PRONE_THRESHOLD:
+		_set_state(State.PRONE)
+	else:
+		_set_state(State.SEATED)
+	if interrupted:
+		event_reported.emit("%s attack interrupted by pistol shot" % display_name)
+	return true
+
+func receive_firearm_execution() -> void:
+	if state != State.SEATED:
+		return
+	health = 0
+	_set_state(State.DEAD)
+
 func receive_execution_bash(damage: int) -> void:
 	if state != State.SEATED and state != State.PRONE:
 		return
@@ -95,6 +121,9 @@ func receive_execution_bash(damage: int) -> void:
 
 func is_execution_eligible() -> bool:
 	return state == State.SEATED or state == State.PRONE
+
+func is_firearm_target() -> bool:
+	return state != State.PRONE and state != State.DEAD
 
 func state_name() -> String:
 	return State.keys()[state].capitalize()

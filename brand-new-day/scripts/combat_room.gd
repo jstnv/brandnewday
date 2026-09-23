@@ -89,6 +89,24 @@ func find_execution_target(origin: Vector2) -> Zombie:
 			best = zombie
 	return best
 
+func find_firearm_target(origin: Vector2, direction: Vector2) -> Zombie:
+	var best: Zombie
+	var best_distance := INF
+	var aim_threshold := cos(deg_to_rad(CombatTuning.PISTOL_SPREAD_DEGREES + 7.0))
+	for zombie in zombies:
+		if not zombie.is_firearm_target():
+			continue
+		var offset := zombie.global_position - origin
+		var distance := offset.length()
+		if distance <= 0.0 or distance > CombatTuning.PISTOL_RANGE:
+			continue
+		if direction.dot(offset / distance) < aim_threshold:
+			continue
+		if distance < best_distance:
+			best_distance = distance
+			best = zombie
+	return best
+
 func _report_event(message: String) -> void:
 	event_lines.push_front(message)
 	if event_lines.size() > 6:
@@ -99,11 +117,16 @@ func _update_hud() -> void:
 	if not is_instance_valid(survivor):
 		return
 	var lines := PackedStringArray()
-	lines.append("BRAND NEW DAY — MILESTONE 1 COMBAT SLICE")
-	lines.append("WASD move  |  Shift sprint  |  Ctrl/C crouch  |  Mouse aim")
-	lines.append("LMB/Space melee  |  E execute downed target  |  R reset  |  F1 debug")
+	lines.append("BRAND NEW DAY — MILESTONE 2 FIREARM SLICE")
+	lines.append("WASD move | Shift sprint | Ctrl/C crouch | Mouse aim | 1 melee | 2 pistol")
+	lines.append("LMB use weapon | Space melee | E tap/hold execute | R reload | L load | Q cycle mag | F5 reset | F1 HUD")
 	lines.append("")
-	lines.append("Survivor: %s    Stamina: %3d/100" % [survivor.get_movement_state(), roundi(survivor.stamina)])
+	lines.append("Survivor: %s  Stamina: %3d/100  Weapon: %s  Action: %s" % [survivor.get_movement_state(), roundi(survivor.stamina), survivor.weapon_name(), survivor.action_status()])
+	lines.append("Inserted: %s  |  Loose %s: %d  |  Load target: %s" % [survivor.inserted_magazine.summary(), CombatTuning.PISTOL_AMMO_CATEGORY, survivor.loose_ammo, survivor.magazine_load_target.summary()])
+	var spare_text := PackedStringArray()
+	for magazine in survivor.spare_magazines:
+		spare_text.append(magazine.summary())
+	lines.append("Spares: " + ", ".join(spare_text))
 	lines.append("Injury system: DEFERRED    %s" % survivor.last_hit_report)
 	for zombie in zombies:
 		lines.append("%s: %-8s HP %3d" % [zombie.display_name, zombie.state_name(), zombie.health])
