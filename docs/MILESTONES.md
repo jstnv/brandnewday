@@ -26,7 +26,7 @@ Add one provisional semi-automatic pistol, individual magazines, loose rounds, m
 
 ## 3 — First retrieval expedition
 
-Add a minimal bunker/deployment screen, a small retrieval map, a neutral bunker-supply objective, and return-to-entry outdoor extraction. Persist objective completion, collected loot, and zombie deaths across retreat/retry. Introduce new perimeter zombies only between expeditions. Demonstrate a complete deployment, retrieval, extraction, and retry cycle. Save/load format and stable object identifiers are implementation choices.
+Add a minimal bunker/deployment screen, one small handcrafted retrieval map, a neutral bunker-supply objective, and return-to-entry outdoor extraction. Persist objective completion, collected loot, and zombie deaths across retreat/retry. Introduce new perimeter zombies only between expeditions. Demonstrate a complete deployment, retrieval, extraction, and retry cycle. Save/load format and stable object identifiers are implementation choices.
 
 ## 4 — Injury, incapacitation, and rescue
 

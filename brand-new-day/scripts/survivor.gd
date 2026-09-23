@@ -34,6 +34,13 @@ var _room: CombatRoom
 
 func setup(room: CombatRoom) -> void:
 	_room = room
+	if get_node_or_null("CollisionShape2D") == null:
+		var collision := CollisionShape2D.new()
+		collision.name = "CollisionShape2D"
+		var shape := CircleShape2D.new()
+		shape.radius = 18.0
+		collision.shape = shape
+		add_child(collision)
 	_reset_inventory()
 	queue_redraw()
 

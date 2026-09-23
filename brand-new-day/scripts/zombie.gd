@@ -4,6 +4,7 @@ extends CharacterBody2D
 enum State { IDLE, CHASE, WINDUP, LUNGE, RECOVER, SEATED, PRONE, DEAD }
 
 signal event_reported(message: String)
+signal died(zombie_id: String)
 
 var state := State.IDLE
 var health := CombatTuning.ZOMBIE_MAX_HEALTH
@@ -11,10 +12,20 @@ var state_timer := 0.0
 var lunge_direction := Vector2.ZERO
 var survivor: Survivor
 var display_name := "Zombie"
+var persistent_id := ""
+var _death_reported := false
 
-func setup(target: Survivor, label: String) -> void:
+func setup(target: Survivor, label: String, id_value: String = "") -> void:
 	survivor = target
 	display_name = label
+	persistent_id = id_value
+	if get_node_or_null("CollisionShape2D") == null:
+		var collision := CollisionShape2D.new()
+		collision.name = "CollisionShape2D"
+		var shape := CircleShape2D.new()
+		shape.radius = 18.0
+		collision.shape = shape
+		add_child(collision)
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -130,6 +141,9 @@ func state_name() -> String:
 
 func _set_state(next_state: State) -> void:
 	state = next_state
+	if state == State.DEAD and not _death_reported:
+		_death_reported = true
+		died.emit(persistent_id)
 	queue_redraw()
 
 func _draw() -> void:

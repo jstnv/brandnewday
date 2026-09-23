@@ -306,5 +306,74 @@ func _run() -> void:
 	target._physics_process(0.01)
 	_check(target.state == Zombie.State.RECOVER, "missed lunge enters recovery")
 
+	# Milestone 3 expedition persistence and bunker/deployment loop.
+	var persistent_state := MissionState.new()
+	persistent_state.begin_expedition()
+	var expedition := load("res://scenes/combat_room.tscn").instantiate() as CombatRoom
+	expedition.configure_mission(persistent_state)
+	root.add_child(expedition)
+	await process_frame
+	_check(expedition.zombies.size() == 2 and not persistent_state.is_supply_collected(), "first expedition starts with core zombies and available bunker supply")
+	_check(expedition.zombies[0].persistent_id == "depot_zombie_a" and expedition.zombies[1].persistent_id == "depot_zombie_b", "mission zombies use stable persistent identities")
+	expedition.zombies[0].receive_melee(CombatTuning.ZOMBIE_MAX_HEALTH, Vector2.RIGHT)
+	_check(persistent_state.is_zombie_dead("depot_zombie_a"), "zombie death is recorded immediately in mission state")
+	expedition.survivor.position = expedition.supply_position
+	_check(expedition.try_collect_supply() and persistent_state.is_supply_collected() and persistent_state.is_objective_complete(), "bunker supply collection and objective step persist immediately")
+	var active_count := expedition.zombies.size()
+	expedition._process(0.2)
+	_check(expedition.zombies.size() == active_count and persistent_state.introduced_perimeter_zombie_ids.is_empty(), "no zombies are introduced during an active expedition")
+	var extraction_result := [false, false]
+	expedition.expedition_finished.connect(func(success: bool) -> void:
+		extraction_result[0] = true
+		extraction_result[1] = success)
+	expedition.has_departed_entry = true
+	expedition.survivor.position = expedition.extraction_area.get_center()
+	expedition._process(0.01)
+	_check(extraction_result[0] and extraction_result[1], "returning through outdoor extraction completes a secured objective")
+	expedition.queue_free()
+	await process_frame
+	persistent_state.begin_expedition()
+	var retry := load("res://scenes/combat_room.tscn").instantiate() as CombatRoom
+	retry.configure_mission(persistent_state)
+	root.add_child(retry)
+	await process_frame
+	var retry_ids: Array[String] = []
+	for zombie in retry.zombies: retry_ids.append(zombie.persistent_id)
+	_check(not retry_ids.has("depot_zombie_a"), "killed zombie remains dead on retry")
+	_check(persistent_state.is_objective_complete() and persistent_state.is_supply_collected(), "collected supply stays gone and completed objective step remains complete")
+	_check(retry_ids.has("perimeter_zombie_01") and retry.zombies.any(func(zombie: Zombie) -> bool: return zombie.persistent_id == "perimeter_zombie_01" and zombie.position.x >= 1100.0), "new zombie is introduced at the perimeter only between expeditions")
+	retry.queue_free()
+	await process_frame
+
+	var retreat_state := MissionState.new()
+	retreat_state.begin_expedition()
+	var retreat_room := load("res://scenes/combat_room.tscn").instantiate() as CombatRoom
+	retreat_room.configure_mission(retreat_state)
+	root.add_child(retreat_room)
+	await process_frame
+	var retreat_result := [false, true]
+	retreat_room.expedition_finished.connect(func(success: bool) -> void:
+		retreat_result[0] = true
+		retreat_result[1] = success)
+	retreat_room.has_departed_entry = true
+	retreat_room.survivor.position = retreat_room.extraction_area.get_center()
+	retreat_room._process(0.01)
+	retreat_state.record_extraction()
+	_check(retreat_result[0] and not retreat_result[1] and retreat_state.retreats == 1, "returning before collection records a safe retreat")
+	retreat_room.queue_free()
+	await process_frame
+	retreat_state.begin_expedition()
+	_check(not retreat_state.is_objective_complete() and retreat_state.introduced_perimeter_zombie_ids.has("perimeter_zombie_01"), "retreat retry preserves incomplete objective and introduces perimeter zombie between expeditions")
+
+	var flow := load("res://scenes/game_flow.tscn").instantiate() as GameFlow
+	root.add_child(flow)
+	await process_frame
+	_check(flow.in_bunker and flow.active_expedition == null, "main game loop launches at bunker deployment screen")
+	flow.deploy()
+	await process_frame
+	_check(not flow.in_bunker and flow.active_expedition != null and flow.mission_state.expedition_count == 1, "bunker deployment starts first handcrafted expedition")
+	flow.queue_free()
+	await process_frame
+
 	print("VERIFICATION: %d checks, %d failures" % [checks, failures.size()])
 	quit(0 if failures.is_empty() else 1)

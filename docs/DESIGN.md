@@ -81,6 +81,8 @@ Total carried weight, including equipped items, determines encumbrance. Light pe
 
 ## Missions and persistence
 
+- The first playable retrieval objective is a neutral **bunker supply** placeholder. Its story significance remains open until the loop is proven.
+- Milestone 3 uses one small handcrafted depot map and a minimal bunker/deployment screen. This is a scope boundary, not a permanent limit on future expedition content.
 - Entry and extraction share the same approach. Extraction is an outdoor area a meaningful distance beyond the doorway, not a door interaction.
 - Walking into the valid exit area extracts automatically. Do not immediately extract the player on initial spawn; use departure/return state or suitable placement.
 - Retreating before completion permits a later retry.
