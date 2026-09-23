@@ -61,7 +61,7 @@ func _spawn_zombie(position_value: Vector2, label: String) -> void:
 
 func find_melee_target(origin: Vector2, direction: Vector2) -> Zombie:
 	var best: Zombie
-	var best_score := INF
+	var best_distance := INF
 	for zombie in zombies:
 		if zombie.state == Zombie.State.DEAD:
 			continue
@@ -71,10 +71,9 @@ func find_melee_target(origin: Vector2, direction: Vector2) -> Zombie:
 			continue
 		if distance > 0.0 and direction.dot(offset / distance) < CombatTuning.MELEE_ARC_DOT:
 			continue
-		# One winner only. Distance plus a small angular preference is deterministic.
-		var score := distance - direction.dot(offset.normalized()) * 12.0
-		if score < best_score:
-			best_score = score
+		# One winner only: the closest living zombie inside the aimed melee arc.
+		if distance < best_distance:
+			best_distance = distance
 			best = zombie
 	return best
 

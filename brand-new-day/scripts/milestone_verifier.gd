@@ -44,6 +44,18 @@ func _run() -> void:
 	Input.action_release("move_right")
 	_check(survivor.stamina < stamina_before, "sprint consumes stamina")
 
+	# A swing chooses the nearest valid zombie, even when both are in the aim arc.
+	room.reset_room()
+	await process_frame
+	survivor = room.survivor
+	survivor.aim_direction = Vector2.RIGHT
+	room.zombies[0].state = Zombie.State.IDLE
+	room.zombies[1].state = Zombie.State.IDLE
+	room.zombies[0].position = survivor.position + Vector2(65.0, 0.0)
+	room.zombies[1].position = survivor.position + Vector2(35.0, 8.0)
+	survivor.try_melee()
+	_check(room.zombies[0].health == 100 and room.zombies[1].health == 66, "melee damages only the closest zombie in the aim arc")
+
 	# Both targets deliberately overlap. Only one may take damage/knockdown.
 	room.reset_room()
 	await process_frame
@@ -73,9 +85,13 @@ func _run() -> void:
 	target.position = survivor.position + Vector2(35.0, 0.0)
 	target.state = Zombie.State.SEATED
 	target.health = 66
+	var other_target := room.zombies[1]
+	other_target.position = survivor.position + Vector2(55.0, 0.0)
+	other_target.state = Zombie.State.PRONE
 	var stamina_at_execution := survivor.stamina
 	_check(survivor.try_execute(), "seated zombie is execution eligible")
 	_check(target.health == 42 and target.state == Zombie.State.PRONE, "seated execution first bash damages immediately and makes target prone")
+	_check(other_target.health == 100, "execution selects only the closest eligible zombie")
 	_check(is_equal_approx(survivor.execution_timer, CombatTuning.SEATED_FIRST_BASH_DELAY), "seated opening uses slower first-bash delay")
 	var locked_position := survivor.position
 	survivor.position += Vector2(19.0, 11.0) # Simulate collision/effect displacement.
@@ -87,9 +103,10 @@ func _run() -> void:
 	_check(survivor.position.is_equal_approx(locked_position), "execution restores its exact anchor against input and external displacement")
 	_check(not survivor.try_melee(), "execution prevents other attacks")
 	_check(is_equal_approx(survivor.stamina, stamina_at_execution), "melee/execution do not consume stamina")
+	other_target.position = survivor.position + Vector2(5.0, 0.0)
 	survivor.execution_timer = 0.0
 	survivor._physics_process(0.01)
-	_check(target.health == 18 and is_equal_approx(survivor.execution_timer, CombatTuning.PRONE_BASH_DELAY), "continuing prone bash is immediate and uses faster cadence")
+	_check(target.health == 18 and other_target.health == 100 and is_equal_approx(survivor.execution_timer, CombatTuning.PRONE_BASH_DELAY), "later bashes stay bound to the original target even if another zombie becomes closer")
 	survivor.execution_timer = 0.0
 	survivor._physics_process(0.01)
 	_check(target.state == Zombie.State.DEAD and not survivor.is_executing, "execution ends as soon as target dies")
