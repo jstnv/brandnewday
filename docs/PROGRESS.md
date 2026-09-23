@@ -11,7 +11,7 @@ Implemented gameplay:
 - WASD walking, reduced-speed crouching, sprinting with stamina drain and delayed recovery, and mouse-directed aiming.
 - Ordinary directional melee with damage, interruption, knockdown, a deterministic one-target-per-swing limit, and ordinary-melee kills.
 - Health-based seated/prone knockdowns. A second ordinary hit moves a seated zombie to prone unless lethal.
-- Execution eligibility for seated and prone zombies. Executions lock movement and attacks, apply every bash immediately, stop on death, and choose bash count naturally from remaining health.
+- Execution eligibility for seated and prone zombies. Executions anchor the survivor to the exact starting position, lock movement and attacks, apply every bash immediately, stop on death, and choose bash count naturally from remaining health.
 - A seated execution's first bash forces prone and uses the slower opening delay; already-prone and subsequent bashes use the faster cadence.
 - Zombie hits visibly report an incoming hit and interrupt an execution without reverting bash damage. No temporary survivor health pool exists; injury consequences remain deferred.
 - Standard-zombie detection, fast approach, visible windup, committed nontracking lunge, missed-lunge recovery, and ordinary-melee interruption during both windup and lunge.
@@ -42,12 +42,12 @@ Controls:
 
 - Godot 4.7.1 stable (`a13da4feb`) completed the editor import/parser pass after the implementation. No parser, scene-load, or invalid-node-reference errors remained.
 - The main scene ran under Godot for a runtime smoke check without milestone-related errors.
-- `godot --headless --path brand-new-day --script res://scripts/milestone_verifier.gd` passed 23/23 focused in-engine checks:
+- `godot --headless --path brand-new-day --script res://scripts/milestone_verifier.gd` passed 24/24 focused in-engine checks:
   - scene launch with one survivor and two zombies;
   - walk, crouch, sprint, and stamina drain;
   - exactly one damaged/knocked-down target when two zombies occupy the same melee position;
   - high-health seated knockdown, seated-to-prone follow-up, and ordinary-melee death;
-  - seated and prone execution eligibility, immediate per-bash damage, seated first-bash prone transition, distinct cadence, movement/attack lock, no stamina cost, and stop-on-death;
+  - seated and prone execution eligibility, immediate per-bash damage, seated first-bash prone transition, distinct cadence, exact position anchoring against held movement and simulated external displacement, attack lock, no stamina cost, and stop-on-death;
   - execution interruption by an operator hit with already-applied damage retained;
   - telegraphed windup, fixed nontracking lunge direction, missed-lunge recovery, and melee interruption of both windup and active lunge.
 - A rendered 1280×720 project frame was captured and inspected. Room boundaries, floor grid, survivor/aim indicator, both zombies, zombie health bars, controls, stamina, enemy states, deferred-injury notice, and event log were visible and readable.

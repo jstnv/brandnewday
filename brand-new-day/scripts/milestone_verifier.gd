@@ -78,10 +78,14 @@ func _run() -> void:
 	_check(target.health == 42 and target.state == Zombie.State.PRONE, "seated execution first bash damages immediately and makes target prone")
 	_check(is_equal_approx(survivor.execution_timer, CombatTuning.SEATED_FIRST_BASH_DELAY), "seated opening uses slower first-bash delay")
 	var locked_position := survivor.position
+	survivor.position += Vector2(19.0, 11.0) # Simulate collision/effect displacement.
 	Input.action_press("move_left")
+	Input.action_press("sprint")
 	survivor._physics_process(0.1)
+	Input.action_release("sprint")
 	Input.action_release("move_left")
-	_check(survivor.position.is_equal_approx(locked_position) and not survivor.try_melee(), "execution prevents movement and other attacks")
+	_check(survivor.position.is_equal_approx(locked_position), "execution restores its exact anchor against input and external displacement")
+	_check(not survivor.try_melee(), "execution prevents other attacks")
 	_check(is_equal_approx(survivor.stamina, stamina_at_execution), "melee/execution do not consume stamina")
 	survivor.execution_timer = 0.0
 	survivor._physics_process(0.01)

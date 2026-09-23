@@ -8,6 +8,7 @@ var aim_direction := Vector2.RIGHT
 var is_executing := false
 var execution_target: Zombie
 var execution_timer := 0.0
+var execution_lock_position := Vector2.ZERO
 var melee_cooldown := 0.0
 var stamina_recovery_delay := 0.0
 var last_hit_report := "No survivor hits (injury deferred)"
@@ -22,8 +23,10 @@ func _physics_process(delta: float) -> void:
 	_update_aim()
 	if is_executing:
 		velocity = Vector2.ZERO
+		global_position = execution_lock_position
 		_update_execution(delta)
-		move_and_slide()
+		# Keep the operator fixed even if another body or future effect displaces it.
+		global_position = execution_lock_position
 		queue_redraw()
 		return
 
@@ -83,6 +86,7 @@ func try_execute() -> bool:
 		return false
 	is_executing = true
 	execution_target = target
+	execution_lock_position = global_position
 	velocity = Vector2.ZERO
 	event_reported.emit("Execution committed on %s" % target.display_name)
 	_apply_execution_bash()
